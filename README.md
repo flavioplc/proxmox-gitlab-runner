@@ -30,16 +30,19 @@ Le conteneur obtenu :
 ## Installation
 
 Le script `ct/` charge le moteur des community-scripts, qui récupère ensuite `install/gitlab-runner-install.sh`
-depuis le dépôt indiqué. Comme ce script n'est pas dans la collection officielle, on le lance avec le
-lanceur `run.sh` du dépôt [community-scripts/core](https://github.com/community-scripts/core), qui pointe
-vers ce dépôt-ci.
+depuis le dépôt désigné par `COMMUNITY_SCRIPTS_URL`. Comme ce script n'est pas dans la collection officielle,
+cette variable doit pointer vers ce dépôt-ci.
 
 Dans le shell de l'hôte Proxmox :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/community-scripts/core/main/tools/run.sh | \
-  bash -s -- https://raw.githubusercontent.com/flavioplc/proxmox-gitlab-runner/main ct/gitlab-runner.sh
+export COMMUNITY_SCRIPTS_URL=https://raw.githubusercontent.com/flavioplc/proxmox-gitlab-runner/main
+bash -c "$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/ct/gitlab-runner.sh")"
 ```
+
+> ⚠️ N'utilise pas la forme `curl … | bash` (ni le lanceur `run.sh` de community-scripts/core, qui s'utilise
+> de cette façon) : l'entrée standard est alors le pipe et non le terminal, et les questions posées dans le
+> conteneur échouent immédiatement. La forme `bash -c "$(curl …)"` garde le terminal comme entrée.
 
 Le script demande :
 
@@ -63,9 +66,9 @@ Toutes les valeurs peuvent être fournies par variables d'environnement :
 
 ## Mise à jour
 
-Relance la même commande d'installation, mais **depuis la console du conteneur** et non depuis
-l'hôte : le script détecte qu'il tourne dans le LXC et passe en mode mise à jour. Il compare la version installée avec la dernière release
-de GitLab Runner et remplace le binaire si besoin. La configuration (`/etc/gitlab-runner/config.toml`)
+Relance les deux mêmes commandes, mais **depuis la console du conteneur** et non depuis l'hôte :
+le script détecte qu'il tourne dans le LXC et passe en mode mise à jour. Il compare la version installée
+avec la dernière release de GitLab Runner et remplace le binaire si besoin. La configuration (`/etc/gitlab-runner/config.toml`)
 est conservée.
 
 ## Limites
