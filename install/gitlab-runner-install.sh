@@ -12,33 +12,15 @@ setting_up_container
 network_check
 update_os
 
-if [[ ! -t 0 ]] && [[ -z "${var_gitlab_url:-}" || -z "${var_gitlab_runner_token:-}" ]]; then
-  msg_error "No interactive terminal available (script piped into bash?)."
-  msg_error "Launch it with: bash -c \"\$(curl -fsSL <url>/ct/gitlab-runner.sh)\""
-  msg_error "or set var_gitlab_url and var_gitlab_runner_token for an unattended install."
+# This script runs under lxc-attach, where stdin is never a terminal: the
+# settings are asked on the host by ct/gitlab-runner.sh and arrive as var_*.
+if [[ -z "${var_gitlab_url:-}" || -z "${var_gitlab_runner_token:-}" ]]; then
+  msg_error "var_gitlab_url and var_gitlab_runner_token were not passed to the container."
+  msg_error "Run ct/gitlab-runner.sh on the Proxmox host (it asks for them), or export both variables."
   exit 1
 fi
 
-if [[ -z "${var_gitlab_url:-}" ]]; then
-  read -r -p "${TAB3}GitLab instance URL (e.g. https://gitlab.com): " var_gitlab_url || true
-  var_gitlab_url="${var_gitlab_url:-https://gitlab.com}"
-fi
-
-if [[ -z "${var_gitlab_runner_token:-}" ]]; then
-  read -r -s -p "${TAB3}GitLab Runner authentication token (glrt-...): " var_gitlab_runner_token || true
-  echo
-fi
-
-if [[ -z "${var_gitlab_runner_token:-}" ]]; then
-  msg_error "No runner authentication token provided. Cannot continue."
-  exit 1
-fi
-
-DEFAULT_RUNNER_IMAGE="alpine:latest"
-if [[ -z "${var_gitlab_runner_image:-}" ]]; then
-  read -r -p "${TAB3}Default Docker image for jobs (leave blank for ${DEFAULT_RUNNER_IMAGE}): " var_gitlab_runner_image || true
-fi
-RUNNER_IMAGE="${var_gitlab_runner_image:-$DEFAULT_RUNNER_IMAGE}"
+RUNNER_IMAGE="${var_gitlab_runner_image:-alpine:latest}"
 RUNNER_CONCURRENT="${var_gitlab_runner_concurrent:-2}"
 
 msg_info "Installing Dependencies"

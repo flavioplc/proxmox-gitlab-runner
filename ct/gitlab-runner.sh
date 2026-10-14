@@ -76,7 +76,50 @@ if [[ -n "${mode:-}" ]]; then
   fi
 fi
 
+# The installer runs inside the container under lxc-attach, where stdin is never
+# a terminal, so every question is asked here on the host, before the container
+# is built. lxc-attach carries the exported var_* values into the container.
+function ask_runner_settings() {
+  [[ -n "${mode:-}" ]] && return 0 # unattended: required values checked above
+
+  if ! : 2>/dev/null </dev/tty; then
+    if [[ -n "${var_gitlab_url:-}" && -n "${var_gitlab_runner_token:-}" ]]; then
+      return 0
+    fi
+    msg_error "No terminal available to ask for the GitLab settings."
+    msg_error "Set var_gitlab_url and var_gitlab_runner_token for an unattended install."
+    exit 1
+  fi
+
+  # A previous lxc-attach/pct call can leave us in a background process group.
+  declare -F reclaim_tty >/dev/null && reclaim_tty
+
+  echo
+  if [[ -z "${var_gitlab_url:-}" ]]; then
+    read -r -p "GitLab instance URL [https://gitlab.com]: " var_gitlab_url </dev/tty || true
+    var_gitlab_url="${var_gitlab_url:-https://gitlab.com}"
+  fi
+
+  local attempts=0
+  while [[ -z "${var_gitlab_runner_token:-}" ]]; do
+    attempts=$((attempts + 1))
+    if ((attempts > 3)); then
+      msg_error "No runner authentication token provided. Cannot continue."
+      exit 1
+    fi
+    read -r -s -p "GitLab Runner authentication token (glrt-...): " var_gitlab_runner_token </dev/tty || true
+    echo
+  done
+
+  if [[ -z "${var_gitlab_runner_image:-}" ]]; then
+    read -r -p "Default Docker image for jobs [alpine:latest]: " var_gitlab_runner_image </dev/tty || true
+  fi
+
+  export var_gitlab_url var_gitlab_runner_token var_gitlab_runner_image
+}
+
 start
+ask_runner_settings
 build_container
 description
 

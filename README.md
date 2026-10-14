@@ -40,9 +40,9 @@ export COMMUNITY_SCRIPTS_URL=https://raw.githubusercontent.com/flavioplc/proxmox
 bash -c "$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/ct/gitlab-runner.sh")"
 ```
 
-> ⚠️ N'utilise pas la forme `curl … | bash` (ni le lanceur `run.sh` de community-scripts/core, qui s'utilise
-> de cette façon) : l'entrée standard est alors le pipe et non le terminal, et les questions posées dans le
-> conteneur échouent immédiatement. La forme `bash -c "$(curl …)"` garde le terminal comme entrée.
+Les questions propres au runner sont posées **sur l'hôte**, après les menus habituels et avant la création
+du conteneur. Le moteur exécute ensuite le script d'installation dans le conteneur via `lxc-attach`, où aucun
+terminal n'est disponible : les réponses lui sont transmises par les variables `var_gitlab_*`.
 
 Le script demande :
 
